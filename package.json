@@ -14,8 +14,34 @@
     {
       "name": "transcribe-audio",
       "title": "Transcribe Audio",
-      "description": "",
+      "description": "Transcribe audio using Whisper",
       "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "whisperPath",
+      "type": "textfield",
+      "required": true,
+      "title": "Whisper Path",
+      "description": "Path to your Whisper stream installation",
+      "placeholder": "/path/to/whisper"
+    },
+    {
+      "name": "soxPath",
+      "type": "textfield",
+      "required": true,
+      "title": "Sox Path",
+      "description": "Path to Sox executable",
+      "default": "/opt/homebrew/bin/sox"
+    },
+    {
+      "name": "modelName",
+      "type": "textfield",
+      "required": true,
+      "title": "Whisper Model Name",
+      "description": "Name of the Whisper model file",
+      "default": "ggml-base.en.bin"
     }
   ],
   "dependencies": {
