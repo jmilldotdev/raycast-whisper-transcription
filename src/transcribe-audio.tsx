@@ -194,7 +194,7 @@ export default function Command() {
     <Detail
       markdown={
         isRecording
-          ? "Recording in progress... Click 'Stop Recording' when finished."
+          ? "Recording in progress... Click 'Stop Recording' or press enter when finished."
           : isTranscribing
             ? getTranscribingMessage()
             : ""
