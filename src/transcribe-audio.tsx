@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
-import { Detail, showToast, Toast, Clipboard, getPreferenceValues, Action, ActionPanel, closeMainWindow, popToRoot } from "@raycast/api";
+import {
+  Detail,
+  showToast,
+  Toast,
+  Clipboard,
+  getPreferenceValues,
+  Action,
+  ActionPanel,
+  closeMainWindow,
+  popToRoot,
+} from "@raycast/api";
 import { spawn, ChildProcess } from "child_process";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -7,6 +17,7 @@ import { unlink } from "fs/promises";
 import { existsSync } from "fs";
 import { readFile as readFileCallback } from "fs";
 import { promisify } from "util";
+import { exec } from "child_process";
 
 const readFile = promisify(readFileCallback);
 
@@ -115,13 +126,21 @@ export default function Command() {
       setIsTranscribing(false);
       if (code === 0) {
         try {
-          const transcribedText = await readFile(outputTextFile, "utf-8");
-          console.log(`Raw transcription output: ${transcribedText}`);
-          await copyTranscriptionToClipboard(transcribedText.trim());
+          let transcribedText = await readFile(outputTextFile, "utf-8");
+
+          // Clean up the transcription
+          transcribedText = transcribedText
+            .replace(/\[.*?\]/g, "") // Remove anything in square brackets
+            .replace(/\n+/g, " ") // Replace line breaks with spaces
+            .replace(/\s{2,}/g, " ") // Replace multiple spaces with a single space
+            .trim(); // Remove leading/trailing whitespace
+
+          console.log(`Cleaned transcription output: ${transcribedText}`);
+          await copyTranscriptionToClipboardAndPaste(transcribedText);
           await unlink(outputTextFile);
           showToast(Toast.Style.Success, "Transcription copied to clipboard");
           await closeMainWindow();
-          await popToRoot(); // Add this line to return to the main menu
+          await popToRoot();
         } catch (error) {
           console.error(`Error reading transcription: ${error}`);
           showToast(Toast.Style.Failure, "Error reading transcription", (error as Error).message);
@@ -138,9 +157,19 @@ export default function Command() {
     });
   };
 
-  const copyTranscriptionToClipboard = async (text: string) => {
+  const copyTranscriptionToClipboardAndPaste = async (text: string) => {
     if (text.trim()) {
       await Clipboard.copy(text.trim());
+
+      // Execute paste command
+      exec(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`, (error) => {
+        if (error) {
+          console.error("Error executing paste command:", error);
+          showToast(Toast.Style.Failure, "Failed to paste", "Text copied to clipboard but paste failed");
+        } else {
+          showToast(Toast.Style.Success, "Transcription pasted");
+        }
+      });
     } else {
       showToast(Toast.Style.Failure, "No transcription to copy");
     }
@@ -168,7 +197,7 @@ export default function Command() {
           ? "Recording in progress... Click 'Stop Recording' when finished."
           : isTranscribing
             ? getTranscribingMessage()
-            : "# Whisper Transcription\n\nRecording will start automatically."
+            : ""
       }
       actions={
         <ActionPanel>
